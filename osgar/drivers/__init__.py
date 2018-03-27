@@ -4,8 +4,9 @@ from .spider import Spider
 from .logserial import LogSerial
 from .canserial import CANSerial
 from .logsocket import LogTCP
+from .lidar import Lidar
 
 # dictionary of all available drivers
 all_drivers = dict(gps=GPS, imu=IMU, spider=Spider, serial=LogSerial,
-                   can=CANSerial, tcp=LogTCP)
+                   can=CANSerial, tcp=LogTCP, lidar=Lidar)
 

@@ -2,6 +2,12 @@
   "version": 2,
   "robot": {
     "modules": {
+      "lidar": {
+          "driver": "lidar",
+          "in": ["raw"],
+          "out": ["raw", "scan"],
+          "init": {}
+      },
       "lidar_tcp": {
           "driver": "tcp",
           "in": ["raw"],
@@ -9,6 +15,8 @@
           "init": {"host": "192.168.2.71", "port": 2111, "timeout": 3.0}
       }
     },
-    "links": []
+    "links": [["lidar_tcp.raw", "lidar.raw"], 
+              ["lidar.raw", "lidar_tcp.raw"]
+      ]
   }
 }
