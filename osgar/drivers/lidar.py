@@ -19,9 +19,22 @@ class Lidar(Thread):
         self.bus = bus
         self.buf = b''
 
+    @staticmethod
+    def parse_raw_data(raw_data):
+        data = raw_data.split()
+        assert len(data) == 854, len(data)
+        assert data[1] == b'LMDscandata', data[:2]
+        timestamp = int(data[9], 16)  # TODO verify
+        assert data[20] == b'DIST1', data[20]
+        scan_start = 24  # TODO verify (prev version was 26)
+        scan_size = 270 * 3 + 1
+        scan_end = scan_start + scan_size
+        dist = [int(x, 16) for x in data[scan_start:scan_end]]
+        return dist
+
     def process_packet(self, packet):
         if packet.startswith(STX) and packet.endswith(ETX):
-            return packet  # TODO parse
+            return self.parse_raw_data(packet)
         return None
 
     def split_buffer(self, data):
