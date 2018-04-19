@@ -4,12 +4,14 @@
 
 from threading import Thread
 import numpy as np
+import struct
 
 from osgar.lib.logger import LogWriter, LogReader
 from osgar.drivers.bus import BusShutdownException
 
 
 INVALID_COORDINATES = [None, None]
+BIN_PREAMBULE = bytes([0xB5, 0x62])
 
 
 def checksum(s):
@@ -44,11 +46,46 @@ class GPS(Thread):
         return coord
 
     @staticmethod
+    def parse_bin(data):
+        assert data.startswith(BIN_PREAMBULE), data
+        c, i, size = struct.unpack_from('<BBH', data, 2)
+        assert len(data) == size + 8, (len(data), size + 8)
+        assert c == 1, c  # class = 1 ... NAVigation messages
+        assert i in [3, 0x30], hex(i)  # ID
+
+        # TODO verify checksum!
+        payload = data[6:-2]
+
+        # 31.18.20 UBX-NAV-STATUS (0x01 0x03)
+        # 31.18.20.1 Receiver Navigation Status
+        # Receiver Navigation Status
+        if i == 0x03:
+            fix = payload[4]
+            assert fix in [2, 3], fix  # 2D, 3D
+
+        # 31.18.21 UBX-NAV-SVINFO (0x01 0x30)
+        # 31.18.21.1 Space Vehicle Information
+        # Information about satellites used or visible
+        if i == 0x30:
+            return None
+
+    @staticmethod
     def split_buffer(data):
         # in dGPS there is a block of binary data so stronger selection is required
-        start = max(data.find(b'$GNGGA'), data.find(b'$GPGGA'))
-        if start < 0:
-            return data, b''
+        start_nmea = max(data.find(b'$GNGGA'), data.find(b'$GPGGA'))
+        start_bin = data.find(BIN_PREAMBULE)
+        if start_nmea < 0 or (0 <= start_bin < start_nmea):
+            if start_bin < 0 or start_bin + 8 >= len(data):
+                return data, b''
+            else:
+                # extract binary data: preambule, class, ID, len, payload, checksum
+                c, i, size = struct.unpack_from('<BBH', data, start_bin + 2)
+                end = start_bin + 6 + size + 2
+                if end >= len(data):
+                    return data, b''
+                return data[end:], data[start_bin:end]
+                
+        start = start_nmea
         end = data[start:-2].find(b'*')
         if end < 0:
             return data, b''
@@ -58,6 +95,8 @@ class GPS(Thread):
         if line.startswith(b'$GNGGA') or line.startswith(b'$GPGGA'):
             coords = self.parse_line(line)
             return coords
+        elif line.startswith(BIN_PREAMBULE):
+            __ = self.parse_bin(line)
         return None
 
     def process_gen(self, data):

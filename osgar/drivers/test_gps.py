@@ -36,6 +36,12 @@ class GPSTest(unittest.TestCase):
             b'\xfe\xff\xff\x10P\r\x07(VD\x01}\xff\xff\xff\tQ\r\x07\',)\x00\x1a\x02\x00\x00\x07R\r\x07*N\xb5\x00\xd7\xfe' \
             b'\xff\xff\x0eS\r\x07!\x19\xd0\x00\xca\x00\x00\x00\x83\x17\xb5b\x01\x03\x10\x00\xf8n\x8a\x0e\x03\xdd\x00\x08' \
             b'iy\x00\x00\xdd\xd9\x03\x00\x95($GNGGA,194535.40,5007.71276,N,01422.49206,E,1,12,0.80,284.6,M,44.3,M,,*42\r\n'
+        buf, data = GPS.split_buffer(buf)
+        self.assertTrue(data.startswith(bytes([0xB5, 0x62])))
+        GPS.parse_bin(data)
+        buf, data = GPS.split_buffer(buf)
+        self.assertTrue(data.startswith(bytes([0xB5, 0x62])))
+        GPS.parse_bin(data)
         buf, nmea = GPS.split_buffer(buf)
         self.assertEqual(nmea, b'$GNGGA,194535.40,5007.71276,N,01422.49206,E,1,12,0.80,284.6,M,44.3,M,,*42')
 
